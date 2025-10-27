@@ -4,9 +4,13 @@ const textArea = document.querySelector('textarea');
 const ulTasks = document.querySelector('.app__section-task-list');
 const btnCancel = document.querySelector('.app__form-footer__button--cancel');
 const paragraphTask = document.querySelector('.app__section-active-task-description');
+const btnRemovesCompletedTasks = document.querySelector('#btn-remover-concluidas');
+const btnRemoveAllTasks = document.querySelector('#btn-remover-todas');
 
-const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
 let taskSelected = null;
+let liTaskSelected = null;
+
 
 const updateTask = () => {
      localStorage.setItem('tasks', JSON.stringify(tasks));
@@ -16,7 +20,6 @@ const closedForm = () => {
      textArea.value = '';
      formAddTask.classList.toggle('hidden');
 }
-
 
 const addTask = (task) => {
      const li = document.createElement('li');
@@ -54,26 +57,30 @@ const addTask = (task) => {
      li.append(p);
      li.append(button);
 
-     li.onclick = () => {
-          debugger
-          document.querySelectorAll('.app__section-task-list-item-active')
-               .forEach(task => {
-                    task.classList.remove('app__section-task-list-item-active');
-               });
-          if (taskSelected == task) {
-               paragraphTask.textContent = '';
-               taskSelected = null;
-               return
-          };
-          taskSelected = task;
-          paragraphTask.textContent = task.description;
-          li.classList.add('app__section-task-list-item-active');
+     if (task.completa) {
+          li.classList.add('app__section-task-list-item-complete');
+          button.setAttribute('disabled', 'disabled');
+     } else {
+          li.onclick = () => {
+               document.querySelectorAll('.app__section-task-list-item-active')
+                    .forEach(task => {
+                         task.classList.remove('app__section-task-list-item-active');
+                    });
+               if (taskSelected == task) {
+                    paragraphTask.textContent = '';
+                    taskSelected = null;
+                    liTaskSelected = null;
+                    return
+               };
+               taskSelected = task;
+               liTaskSelected = li;
+               paragraphTask.textContent = task.description;
+               li.classList.add('app__section-task-list-item-active');
+          }
      }
 
      return li;
 }
-
-
 
 btnAddTask.addEventListener('click', () => {
      formAddTask.classList.toggle('hidden');
@@ -81,8 +88,8 @@ btnAddTask.addEventListener('click', () => {
 
 btnCancel.addEventListener('click', closedForm);
 
-formAddTask.addEventListener('submit', (evento) => {
-     evento.preventDefault();
+formAddTask.addEventListener('submit', (event) => {
+     event.preventDefault();
      const task = {
           description: textArea.value
      };
@@ -92,11 +99,34 @@ formAddTask.addEventListener('submit', (evento) => {
      updateTask();
      textArea.value = '';
      formAddTask.classList.add('hidden');
-
-
 });
 
 tasks.forEach(task => {
      const elementTaksCreated = addTask(task);
      ulTasks.append(elementTaksCreated);
 });
+
+document.addEventListener('focusFinished', () => {
+     if (taskSelected && liTaskSelected) {
+          liTaskSelected.classList.remove('app__section-task-list-item-active');
+          liTaskSelected.classList.add('app__section-task-list-item-complete');
+          liTaskSelected.querySelector('button').setAttribute('disabled', 'disabled');
+          taskSelected.completa = true;
+          updateTask();
+     }
+});
+
+const removeTasks = (onlyComplete) => {
+     const selector = onlyComplete ? ".app__section-task-list-item-complete" : ".app__section-task-list-item";
+     document.querySelectorAll(selector).forEach(element => {
+          element.remove();
+     });
+
+     tasks = onlyComplete ? tasks.filter(task => !task.completa) : [];
+     updateTask();
+}
+
+btnRemovesCompletedTasks.onclick = () => removeTasks(true);
+btnRemoveAllTasks.onclick = () => removeTasks(false);
+
+
